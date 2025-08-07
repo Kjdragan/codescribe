@@ -1,0 +1,41 @@
+# Minimal Docker setup for DB Agent development
+# Just PostgreSQL and PostgREST - no authentication complexity
+
+services:
+  # PostgreSQL database - the core data store
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - supabase_network_db_agent
+
+  rest:
+    image: postgrest/postgrest:v12.0.2
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      PGRST_DB_URI: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: postgres
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    depends_on:
+      - db
+    networks:
+      - supabase_network_db_agent
+
+networks:
+  supabase_network_db_agent:
+    driver: bridge
+
+# Define the volumes for data persistence.
+volumes:
+  db_data:
